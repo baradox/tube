@@ -60,8 +60,8 @@ defmodule Tube.BuilderTest do
     end
   end
 
-  defmodule FaultyModulePlug do
-    defmodule FaultyPlug do
+  defmodule FaultyModuleTube do
+    defmodule FaultyTube do
       def init([]), do: []
 
       # Doesn't return a Tube.Context
@@ -69,10 +69,10 @@ defmodule Tube.BuilderTest do
     end
 
     use Tube.Builder
-    tube FaultyPlug
+    tube FaultyTube
   end
 
-  defmodule FaultyFunctionPlug do
+  defmodule FaultyFunctionTube do
     use Tube.Builder
     tube :faulty_function
 
@@ -108,25 +108,25 @@ defmodule Tube.BuilderTest do
 
   test "an exception is raised if a tube doesn't return a connection" do
     assert_raise RuntimeError, fn ->
-      context([]) |> FaultyModulePlug.call([])
+      context([]) |> FaultyModuleTube.call([])
     end
 
     assert_raise RuntimeError, fn ->
-      context([]) |> FaultyFunctionPlug.call([])
+      context([]) |> FaultyFunctionTube.call([])
     end
   end
 
   test "an exception is raised at compile time if a Tube.Builder tube " <>
       "doesn't call tube/2" do
     assert_raise RuntimeError, fn ->
-      defmodule BadPlug, do: use Tube.Builder
+      defmodule BadTube, do: use Tube.Builder
     end
   end
 
   test "an exception is raised at compile time if a tube with no call/2 " <>
       "function is tubbed" do
     assert_raise ArgumentError, fn ->
-      defmodule BadPlug do
+      defmodule BadTube do
         defmodule Bad do
           def init(opts), do: opts
         end
