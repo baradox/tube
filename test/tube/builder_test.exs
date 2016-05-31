@@ -60,6 +60,26 @@ defmodule Tube.BuilderTest do
     end
   end
 
+  defmodule FaultyModulePlug do
+    defmodule FaultyPlug do
+      def init([]), do: []
+
+      # Doesn't return a Tube.Context
+      def call(_conntext, _opts), do: "foo"
+    end
+
+    use Tube.Builder
+    tube FaultyPlug
+  end
+
+  defmodule FaultyFunctionPlug do
+    use Tube.Builder
+    tube :faulty_function
+
+    # Doesn't return a Tube.Context
+    def faulty_function(_context, _opts), do: "foo"
+  end
+
   use ExUnit.Case, async: true
   import Tube.Context
 
@@ -84,5 +104,22 @@ defmodule Tube.BuilderTest do
     assert fetch!(context, :second)
     assert fetch!(context, :halted)
     refute get(context, :end_of_chain_reached)
+  end
+
+  test "an exception is raised if a tube doesn't return a connection" do
+    assert_raise RuntimeError, fn ->
+      context([]) |> FaultyModulePlug.call([])
+    end
+
+    assert_raise RuntimeError, fn ->
+      context([]) |> FaultyFunctionPlug.call([])
+    end
+  end
+
+  test "an exception is raised at compile time if a Tube.Builder tube " <>
+      "doesn't call tube/2" do
+    assert_raise RuntimeError, fn ->
+      defmodule BadPlug, do: use Tube.Builder
+    end
   end
 end
