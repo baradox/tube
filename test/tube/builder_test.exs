@@ -24,6 +24,25 @@ defmodule Tube.BuilderTest do
     end
   end
 
+  defmodule Overridable do
+    use Tube.Builder
+    import Tube.Context
+    def call(context, opts) do
+      try do
+        super(context, opts)
+      catch
+        :throw, {:oops, context} -> assign(context, :oops, :caught)
+      end
+    end
+
+    tube :boom
+
+    def boom(context, opts) do
+      context = assign(context, :entered_stack, true)
+      throw {:oops, context}
+    end
+  end
+
   use ExUnit.Case, async: true
   import Tube.Context
 
@@ -34,5 +53,11 @@ defmodule Tube.BuilderTest do
   test "build stack in the order" do
     context = context(stack: [])
     assert Sample.call(context, []) |> fetch!(:stack) == [call: {:init, :opts}, fun: []]
+  end
+
+  test "allows call/2 to be overridden with super" do
+    context = context([]) |> Overridable.call([])
+    assert fetch!(context, :oops) == :caught
+    assert fetch!(context, :entered_stack) == true
   end
 end
