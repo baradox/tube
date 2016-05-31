@@ -80,6 +80,14 @@ defmodule Tube.BuilderTest do
     def faulty_function(_context, _opts), do: "foo"
   end
 
+  defmodule ShorthandTube do
+    use Tube.Builder
+
+    tube foo(context) do
+      assign(context, :foo, true)
+    end
+  end
+
   use ExUnit.Case, async: true
   import Tube.Context
 
@@ -92,10 +100,15 @@ defmodule Tube.BuilderTest do
     assert Sample.call(context, []) |> fetch!(:stack) == [call: {:init, :opts}, fun: []]
   end
 
+  test "shorthand definition defines a tube" do
+    context = context([]) |> ShorthandTube.call([])
+    assert fetch!(context, :foo)
+  end
+
   test "allows call/2 to be overridden with super" do
     context = context([]) |> Overridable.call([])
     assert fetch!(context, :oops) == :caught
-    assert fetch!(context, :entered_stack) == true
+    assert fetch!(context, :entered_stack)
   end
 
   test "halt/2 halts the tube stack" do

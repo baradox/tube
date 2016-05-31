@@ -36,11 +36,21 @@ defmodule Tube.Builder do
     end
   end
 
+  defmacro tube(call, [do: block]) do
+    call = put_elem(call, 2, elem(call, 2) ++ [Macro.var(:_opts, nil)])
+    {tube, _, _} = call
+    quote do
+      def unquote(call), do: unquote(block)
+      @tubes {unquote(tube), [], true}
+    end
+  end
+
   defmacro tube(tube, opts \\ []) do
     quote do
       @tubes {unquote(tube), unquote(opts), true}
     end
   end
+
 
   @spec compile(Macro.Env.t, [{tube, Tube.opts, Macro.t}], Keyword.t) :: {Macro.t, Macro.t}
   def compile(env, pipeline, builder_opts) do
