@@ -43,6 +43,23 @@ defmodule Tube.BuilderTest do
     end
   end
 
+  defmodule Halter do
+
+    use Tube.Builder
+    import Tube.Context
+
+    tube :step, :first
+    tube :step, :second
+    tube :halt_here
+    tube :step, :end_of_chain_reached
+
+    def step(context, step), do: assign(context, step, true)
+
+    def halt_here(context, _) do
+      context |> assign(:halted, true) |> halt
+    end
+  end
+
   use ExUnit.Case, async: true
   import Tube.Context
 
@@ -59,5 +76,13 @@ defmodule Tube.BuilderTest do
     context = context([]) |> Overridable.call([])
     assert fetch!(context, :oops) == :caught
     assert fetch!(context, :entered_stack) == true
+  end
+
+  test "halt/2 halts the tube stack" do
+    context = context([]) |> Halter.call([])
+    assert fetch!(context, :first)
+    assert fetch!(context, :second)
+    assert fetch!(context, :halted)
+    refute get(context, :end_of_chain_reached)
   end
 end
