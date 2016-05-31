@@ -122,4 +122,18 @@ defmodule Tube.BuilderTest do
       defmodule BadPlug, do: use Tube.Builder
     end
   end
+
+  test "an exception is raised at compile time if a tube with no call/2 " <>
+      "function is tubbed" do
+    assert_raise ArgumentError, fn ->
+      defmodule BadPlug do
+        defmodule Bad do
+          def init(opts), do: opts
+        end
+
+        use Tube.Builder
+        tube Bad
+      end
+    end
+  end
 end
