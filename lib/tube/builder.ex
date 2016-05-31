@@ -41,44 +41,44 @@ defmodule Tube.Builder do
     {tube, _, _} = call
     quote do
       def unquote(call), do: unquote(block)
-      @tubes {unquote(tube), [], true}
+      @tubes {unquote(tube), []}
     end
   end
 
   defmacro tube(tube, opts \\ []) do
     quote do
-      @tubes {unquote(tube), unquote(opts), true}
+      @tubes {unquote(tube), unquote(opts)}
     end
   end
 
 
-  @spec compile(Macro.Env.t, [{tube, Tube.opts, Macro.t}], Keyword.t) :: {Macro.t, Macro.t}
+  @spec compile(Macro.Env.t, [{tube, Tube.opts}], Keyword.t) :: {Macro.t, Macro.t}
   def compile(env, pipeline, builder_opts) do
     context = quote do: context
     {context, Enum.reduce(pipeline, context, &quote_tube(init_tube(&1), &2, env, builder_opts))}
   end
 
-  defp init_tube({tube, opts, guards}) do
+  defp init_tube({tube, opts}) do
     case Atom.to_char_list(tube) do
-      ~c"Elixir." ++ _ -> init_module_tube(tube, opts, guards)
-      _                -> init_fun_tube(tube, opts, guards)
+      ~c"Elixir." ++ _ -> init_module_tube(tube, opts)
+      _                -> init_fun_tube(tube, opts)
     end
   end
 
-  defp init_module_tube(tube, opts, guards) do
+  defp init_module_tube(tube, opts) do
     initialized_opts = tube.init(opts)
     if function_exported?(tube, :call, 2) do
-      {:module, tube, initialized_opts, guards}
+      {:module, tube, initialized_opts}
     else
       raise ArgumentError, message: "#{inspect tube} tube must implement call/2"
     end
   end
 
-  defp init_fun_tube(tube, opts, guards) do
-    {:function, tube, opts, guards}
+  defp init_fun_tube(tube, opts) do
+    {:function, tube, opts}
   end
 
-  defp quote_tube({tube_type, tube, opts, guards}, acc, env, builder_opts) do
+  defp quote_tube({tube_type, tube, opts}, acc, env, builder_opts) do
     call = quote_tube_call(tube_type, tube, opts)
     error_message = case tube_type do
       :module -> "expected #{inspect tube}.call/2 to return a Tube.Context"
@@ -86,7 +86,7 @@ defmodule Tube.Builder do
     end <> ", all tubes must receive a context and return a context"
 
     quote do
-      case unquote(compile_guards(call, guards)) do
+      case unquote(call) do
         %Tube.Context{halted: true} = context ->
           context
         %Tube.Context{} = context ->
@@ -103,18 +103,5 @@ defmodule Tube.Builder do
 
   defp quote_tube_call(:function, tube, opts) do
     quote do: unquote(tube)(context, unquote(Macro.escape(opts)))
-  end
-
-  defp compile_guards(call, true) do
-    call
-  end
-
-  defp compile_guard(call, guards) do
-    quote do
-      case true do
-        true when unquote(guards) -> unquote(call)
-        true -> context
-      end
-    end
   end
 end
