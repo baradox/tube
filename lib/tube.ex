@@ -4,6 +4,7 @@ defmodule Tube do
   defmacro __using__ do
     quote do
       use Tube.Builder
+      import Tube.Context
     end
   end
 
