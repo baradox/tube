@@ -31,6 +31,16 @@ defmodule Tube.Context do
     Map.get(values, key, default)
   end
 
+  @spec get_all(t, [atom]) :: Map.t
+  def get_all(%__MODULE__{values: values} = context, keys) when is_list(keys) do
+    Enum.reduce(keys, Map.new, fn key, acc ->
+      case Map.get(values, key) do
+        nil -> acc
+        value -> Map.put(acc, key, value)
+      end
+    end)
+  end
+
   @spec context(map) :: t
   def context(map) when is_map(map) do
     %__MODULE__{values: map}
